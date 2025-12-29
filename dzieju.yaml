@@ -2,7 +2,7 @@ blueprint:
   name: Awtrix – Wyświetlanie danych z encji (sensor/weather)
   description: >
     Publikuje wartość encji (lub atrybutu temperature dla weather) do AWtrix przez MQTT
-    z konfigurowalną ikoną, liczbą powtórzeń, czcionką i opcjami tekstu (wielkie litery / brak przewijania).
+    z konfigurowalną ikoną, liczbą powtórzeń, czcionką, sufiksem i opcjami tekstu (wielkie litery / brak przewijania).
   domain: automation
   input:
     sensor_entity:
@@ -15,6 +15,13 @@ blueprint:
     awtrix_topic:
       name: Temat MQTT
       description: Temat MQTT dla Twojego urządzenia AWtrix (np. awtrix_664dc4/custom/sypialnia)
+      selector:
+        text:
+          multiline: false
+    suffix:
+      name: Sufiks (co dopisać po wartości)
+      description: Tekst dopisywany po wartości (np. "°C", "%", " km/h"). Pozostaw puste, aby nie dodawać nic.
+      default: "°C"
       selector:
         text:
           multiline: false
@@ -67,6 +74,7 @@ blueprint:
 variables:
   sensor_entity: !input sensor_entity
   awtrix_topic: !input awtrix_topic
+  suffix: !input suffix
   icon_id: !input icon_id
   push_icon: !input push_icon
   repeat_count: !input repeat_count
@@ -84,14 +92,23 @@ action:
       topic: !input awtrix_topic
       retain: false
       payload: >
-        {
-          "text": "{% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}{% set num = raw | float(default=None) %}{% if raw in ['unknown','unavailable','', none] %}N/A{% elif num is not none %}{{ num | round(1) }}°C{% else %}{{ raw }}{% endif %}",
-          "icon": "{{ icon_id }}",
-          "pushIcon": {{ push_icon }},
-          "repeat": {{ repeat_count }},
-          "noScroll": {{ 'true' if no_scroll else 'false' }},
-          "uppercase": {{ 'true' if uppercase else 'false' }},
-          "font": {{ font_id }}
-        }
+        {% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}
+        {% set num = raw | float(default=None) %}
+        {% if raw in ['unknown','unavailable','', none] %}
+          {% set text = 'N/A' %}
+        {% elif num is not none %}
+          {% set text = (num | round(1)) ~ (suffix | default('°C')) %}
+        {% else %}
+          {% set text = raw %}
+        {% endif %}
+        {{ {
+            'text': text,
+            'icon': icon_id,
+            'pushIcon': push_icon,
+            'repeat': repeat_count,
+            'noScroll': no_scroll,
+            'uppercase': uppercase,
+            'font': font_id
+           } | tojson }}
 
 mode: restart
