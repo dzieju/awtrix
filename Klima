@@ -1,0 +1,9 @@
+alias: Awtrix – Klima MOC
+description: ""
+use_blueprint:
+  path: dzieju/dzieju.yaml
+  input:
+    sensor_entity: sensor.gniazdo_klima_moc
+    awtrix_topic: awtrix_664dc4/custom/lazienka
+    icon_id: 21368
+    suffix: W
