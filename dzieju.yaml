@@ -1,0 +1,86 @@
+blueprint:
+  name: Awtrix – Wyświetlanie danych z czujnika
+  description: >
+    Publikuje wartość encji czujnika do AWtrix przez MQTT z konfigurowalną ikoną,
+    liczbą powtórzeń, czcionką i opcjami tekstu (wielkie litery / brak przewijania).
+  domain: automation
+  input:
+    sensor_entity:
+      name: Czujnik źródłowy
+      description: Wybierz encję czujnika (np. temperatury, wilgotności)
+      selector:
+        entity:
+          domain: sensor
+    awtrix_topic:
+      name: Temat MQTT
+      description: Temat MQTT dla Twojego urządzenia AWtrix (np. awtrix_664dc4/custom/sypialnia)
+      selector:
+        text:
+          multiline: false
+    icon_id:
+      name: ID ikony
+      description: Numer ikony AWtrix (np. 1447). Można też wpisać tekstowy identyfikator.
+      default: 1447
+      selector:
+        number:
+          min: 0
+          max: 99999
+    push_icon:
+      name: pushIcon
+      description: Wartość pushIcon (0 = nie nadpisuj, 2 = nadpisz)
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 2
+          mode: slider
+    repeat_count:
+      name: Liczba powtórzeń
+      description: Ile razy ma się wyświetlić komunikat
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 10
+    uppercase:
+      name: Wielkie litery
+      description: Czy tekst ma być pisany wielkimi literami
+      default: true
+      selector:
+        boolean: {}
+    no_scroll:
+      name: Bez przewijania
+      description: Czy tekst ma być statyczny (bez przewijania)
+      default: false
+      selector:
+        boolean: {}
+    font_id:
+      name: ID czcionki
+      description: Numer czcionki AWtrix (np. 0 = domyślna)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10
+
+trigger:
+  - platform: state
+    entity_id: !input sensor_entity
+
+action:
+  - service: mqtt.publish
+    data:
+      topic: !input awtrix_topic
+      retain: false
+      payload: >
+        {
+          "text": "{{ states(sensor_entity) }}",
+          "icon": "{{ icon_id }}",
+          "pushIcon": {{ push_icon }},
+          "repeat": {{ repeat_count }},
+          "noScroll": {{ 'true' if no_scroll else 'false' }},
+          "uppercase": {{ 'true' if uppercase else 'false' }},
+          "font": {{ font_id }}
+        }
+
+mode: restart
