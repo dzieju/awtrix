@@ -1,16 +1,15 @@
 blueprint:
-  name: Awtrix – Wyświetlanie danych z czujnika
+  name: Awtrix – Wyświetlanie danych z encji (sensor/weather)
   description: >
-    Publikuje wartość encji czujnika do AWtrix przez MQTT z konfigurowalną ikoną,
-    liczbą powtórzeń, czcionką i opcjami tekstu (wielkie litery / brak przewijania).
+    Publikuje wartość encji (lub atrybutu temperature dla weather) do AWtrix przez MQTT
+    z konfigurowalną ikoną, liczbą powtórzeń, czcionką i opcjami tekstu (wielkie litery / brak przewijania).
   domain: automation
   input:
     sensor_entity:
-      name: Czujnik źródłowy
-      description: Wybierz encję czujnika (np. temperatury, wilgotności)
+      name: Encja źródłowa
+      description: Wybierz encję (sensor lub weather itp.). Dla encji weather użyj atrybutu `temperature`.
       selector:
-        entity:
-          domain: sensor
+        entity: {}   # allow any entity (sensor, weather, etc.)
     awtrix_topic:
       name: Temat MQTT
       description: Temat MQTT dla Twojego urządzenia AWtrix (np. awtrix_664dc4/custom/sypialnia)
@@ -63,7 +62,7 @@ blueprint:
           min: 0
           max: 10
 
-# zmienne przypisane z !input (dla czytelności i użycia w szablonach)
+# przypisanie inputów do zmiennych (dostępne w szablonach)
 variables:
   sensor_entity: !input sensor_entity
   awtrix_topic: !input awtrix_topic
@@ -85,7 +84,7 @@ action:
       retain: false
       payload: >
         {
-          "text": "{{ states(trigger.entity_id) | default('N/A') }}",
+          "text": "{% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}{% if raw in ['unknown','unavailable','', none] %}N/A{% else %}{{ (raw | float | round(1)) }}°C{% endif %}",
           "icon": "{{ icon_id }}",
           "pushIcon": {{ push_icon }},
           "repeat": {{ repeat_count }},
