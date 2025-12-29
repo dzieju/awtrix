@@ -20,6 +20,7 @@ blueprint:
           multiline: false
     icon_id:
       name: ID ikony
+      description: Numer ikony AWtrix (np. 1447). Można też wpisać tekstowy identyfikator.
       default: 1447
       selector:
         number:
@@ -27,6 +28,7 @@ blueprint:
           max: 99999
     push_icon:
       name: pushIcon
+      description: Wartość pushIcon (0 = nie nadpisuj, 2 = nadpisz)
       default: 2
       selector:
         number:
@@ -35,6 +37,7 @@ blueprint:
           mode: slider
     repeat_count:
       name: Liczba powtórzeń
+      description: Ile razy ma się wyświetlić komunikat
       default: 1
       selector:
         number:
@@ -42,16 +45,19 @@ blueprint:
           max: 10
     uppercase:
       name: Wielkie litery
+      description: Czy tekst ma być pisany wielkimi literami
       default: true
       selector:
         boolean: {}
     no_scroll:
       name: Bez przewijania
+      description: Czy tekst ma być statyczny (bez przewijania)
       default: false
       selector:
         boolean: {}
     font_id:
       name: ID czcionki
+      description: Numer czcionki AWtrix (np. 0 = domyślna)
       default: 0
       selector:
         number:
@@ -79,7 +85,7 @@ action:
       retain: false
       payload: >
         {
-          "text": "{% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}{% if raw in ['unknown','unavailable','', none] %}N/A{% else %}{{ (raw | float | round(1)) }}°C{% endif %}",
+          "text": "{% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}{% set num = raw | float(default=None) %}{% if raw in ['unknown','unavailable','', none] %}N/A{% elif num is not none %}{{ num | round(1) }}°C{% else %}{{ raw }}{% endif %}",
           "icon": "{{ icon_id }}",
           "pushIcon": {{ push_icon }},
           "repeat": {{ repeat_count }},
