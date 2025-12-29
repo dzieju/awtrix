@@ -6,12 +6,10 @@ blueprint:
   domain: automation
   input:
     sensor_entity:
-      name: Encja źródłowa (entity_id)
-      description: Wpisz entity_id encji (np. sensor.lazienka_temperature lub weather.forecast_dom).
-                   Możesz skorzystać z autocomplete w UI przy tworzeniu automatyzacji.
+      name: Encja źródłowa
+      description: Wybierz encję (sensor, weather itp.) — lista encji będzie dostępna w UI.
       selector:
-        text:
-          multiline: false
+        entity: {}    # pozwala wybrać encję z listy w UI
     awtrix_topic:
       name: Temat MQTT
       description: Temat MQTT dla Twojego urządzenia AWtrix (np. awtrix_664dc4/custom/sypialnia)
@@ -20,8 +18,8 @@ blueprint:
           multiline: false
     suffix:
       name: Sufiks (co dopisać po wartości)
-      description: Tekst dopisywany po wartości (np. "°C", "%", " km/h"). Pozostaw puste, aby nie dodawać nic.
-      default: "°C"
+      description: Tekst dopisywany po wartości (np. "°C", "%", " km/h"). Pozostaw puste, aby nic nie dopisywać.
+      default: ""
       selector:
         text:
           multiline: false
@@ -94,10 +92,15 @@ action:
       payload: >
         {% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}
         {% set num = raw | float(default=None) %}
+        {% set suffix_safe = suffix | default('') %}
         {% if raw in ['unknown','unavailable','', none] %}
           {% set text = 'N/A' %}
         {% elif num is not none %}
-          {% set text = (num | round(1)) ~ (suffix | default('°C')) %}
+          {% if suffix_safe | trim != '' %}
+            {% set text = (num | round(1)) ~ suffix_safe %}
+          {% else %}
+            {% set text = (num | round(1)) %}
+          {% endif %}
         {% else %}
           {% set text = raw %}
         {% endif %}
