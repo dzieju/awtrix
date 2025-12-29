@@ -1,0 +1,22 @@
+alias: "Awtrix: Temperatura pogoda"
+description: Wymuszenie statycznej ikony 2355
+triggers:
+  - trigger: state
+    entity_id: weather.forecast_dom
+conditions: []
+actions:
+  - action: mqtt.publish
+    data:
+      topic: awtrix_664dc4/custom/pogoda
+      retain: false
+      payload: |
+        {
+          "text": "{{ state_attr('weather.forecast_dom', 'temperature') | round(1) }}°C",
+          "icon": "38231",
+          "pushIcon": 2,
+          "repeat": 1,
+          "noScroll": false,
+          "uppercase": true,
+          "font": 0
+        }
+mode: restart
