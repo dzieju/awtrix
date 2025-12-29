@@ -19,10 +19,12 @@ blueprint:
           multiline: false
     icon_id:
       name: ID ikony
-      description: Numer ikony AWtrix (np. 1447)
-      default: "1447"
+      description: Numer ikony AWtrix (np. 1447). Można też wpisać tekstowy identyfikator.
+      default: 1447
       selector:
-        text:
+        number:
+          min: 0
+          max: 99999
     push_icon:
       name: pushIcon
       description: Wartość pushIcon (0 = nie nadpisuj, 2 = nadpisz)
@@ -59,7 +61,18 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 5
+          max: 10
+
+# zmienne przypisane z !input (dla czytelności i użycia w szablonach)
+variables:
+  sensor_entity: !input sensor_entity
+  awtrix_topic: !input awtrix_topic
+  icon_id: !input icon_id
+  push_icon: !input push_icon
+  repeat_count: !input repeat_count
+  uppercase: !input uppercase
+  no_scroll: !input no_scroll
+  font_id: !input font_id
 
 trigger:
   - platform: state
@@ -72,12 +85,12 @@ action:
       retain: false
       payload: >
         {
-          "text": "{{ states(sensor_entity) }}°C",
+          "text": "{{ states(trigger.entity_id) | default('N/A') }}",
           "icon": "{{ icon_id }}",
           "pushIcon": {{ push_icon }},
           "repeat": {{ repeat_count }},
-          "noScroll": {{ no_scroll | lower }},
-          "uppercase": {{ uppercase | lower }},
+          "noScroll": {{ 'true' if no_scroll else 'false' }},
+          "uppercase": {{ 'true' if uppercase else 'false' }},
           "font": {{ font_id }}
         }
 
