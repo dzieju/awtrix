@@ -1,0 +1,22 @@
+alias: "Awtrix: Temperatura Sypialnia"
+description: Wymuszenie statycznej ikony 2355
+triggers:
+  - trigger: state
+    entity_id: sensor.czujnik_temp_salon_temperature
+conditions: []
+actions:
+  - action: mqtt.publish
+    data:
+      topic: awtrix_664dc4/custom/sypialnia
+      retain: false
+      payload: |
+        {
+          "text": "{{ states('sensor.czujnik_temp_salon_temperature') }}°C",
+          "icon": "1447",
+          "pushIcon": 2,
+          "repeat": 1,
+          "noScroll": false,
+          "uppercase": true,
+          "font": 0
+        }
+mode: restart
