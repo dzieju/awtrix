@@ -26,7 +26,7 @@ blueprint:
         text:
           multiline: false
 
-    # fallback icon gdy brak numerycznej wartości lub brak progów
+    # fallback icon gdy brak numerycznej wartości lub brak progów (opcjonalne)
     icon_id:
       name: Ikona fallback (opcjonalna)
       description: Ikona użyta gdy nie ma wartości liczbowej (np. timestamp/tekst/unavailable). Pozostaw puste, jeśli nie chcesz ustawiać.
@@ -38,7 +38,7 @@ blueprint:
     # progi i odpowiadające im ikony (opcjonalne, domyślnie puste)
     threshold_1:
       name: Próg 1 (opcjonalny)
-      description: Liczba progowa 1 (najniższy próg). Pozostaw puste jeśli nie używasz.
+      description: Liczba progowa 1 (może być najniższy). Pozostaw puste jeśli nie używasz.
       default: ""
       selector:
         text:
@@ -157,11 +157,11 @@ action:
       topic: !input awtrix_topic
       retain: false
       payload: >
-        {# pobierz wartość (atrybut temperature dla weather lub stan encji) #}
+        {# pobierz wartość: atrybut 'temperature' jeśli istnieje, inaczej stan encji #}
         {% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}
         {% set num = raw | float(default=None) %}
 
-        {# zbuduj listę par (threshold, icon) tylko dla tych, które są wypełnione #}
+        {# zbuduj listę (thr, icon) tylko dla wypełnionych par #}
         {% set pairs = [] %}
         {% if threshold_1 | default('') | trim != '' and icon_1 | default('') | trim != '' %}
           {% set pairs = pairs + [{'thr': (threshold_1 | float), 'icon': (icon_1 | int)}] %}
@@ -176,12 +176,12 @@ action:
           {% set pairs = pairs + [{'thr': (threshold_4 | float), 'icon': (icon_4 | int)}] %}
         {% endif %}
 
-        {# sortuj pary po progach rosnąco #}
+        {# posortuj rosnąco po thr #}
         {% if pairs | length > 1 %}
           {% set pairs = pairs | sort(attribute='thr') %}
         {% endif %}
 
-        {# wybierz ikonę na podstawie porównań; jeśli num > wszystkie progi -> weź ikonę ostatniej pary #}
+        {# wybierz ikonę: pierwsza para gdzie num <= thr; jeśli num > wszystkie thr -> ostatnia ikona #}
         {% if num is not none and pairs | length > 0 %}
           {% set chosen_icon = none %}
           {% for p in pairs %}
@@ -203,7 +203,7 @@ action:
           {% set chosen_icon_val = (chosen_icon | int) %}
         {% endif %}
 
-        {# zbuduj tekst - tylko dla liczb dopisujemy sufiks #}
+        {# zbuduj tekst - dla liczb dopisujemy sufiks tylko jeśli podano #}
         {% set suffix_safe = suffix | default('') %}
         {% if raw in ['unknown','unavailable','', none] %}
           {% set text = 'N/A' %}
