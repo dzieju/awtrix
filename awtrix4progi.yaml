@@ -1,5 +1,5 @@
 blueprint:
-  name: Awtrix -
+  name: Awtrix – Wyświetlanie danych z encji (sensor/weather) z wieloma progami
   description: >
     Publikuje wartość encji (lub atrybutu temperature dla weather) do AWtrix przez MQTT
     z konfigurowalnymi ikonami zależnymi od progów (do 4 progów), liczbą powtórzeń,
@@ -164,16 +164,16 @@ action:
         {# zbuduj listę par (threshold, icon) tylko dla tych, które są wypełnione #}
         {% set pairs = [] %}
         {% if threshold_1 | default('') | trim != '' and icon_1 | default('') | trim != '' %}
-          {% set pairs = pairs + [{'thr': threshold_1 | float, 'icon': icon_1 | int}] %}
+          {% set pairs = pairs + [{'thr': (threshold_1 | float), 'icon': (icon_1 | int)}] %}
         {% endif %}
         {% if threshold_2 | default('') | trim != '' and icon_2 | default('') | trim != '' %}
-          {% set pairs = pairs + [{'thr': threshold_2 | float, 'icon': icon_2 | int}] %}
+          {% set pairs = pairs + [{'thr': (threshold_2 | float), 'icon': (icon_2 | int)}] %}
         {% endif %}
         {% if threshold_3 | default('') | trim != '' and icon_3 | default('') | trim != '' %}
-          {% set pairs = pairs + [{'thr': threshold_3 | float, 'icon': icon_3 | int}] %}
+          {% set pairs = pairs + [{'thr': (threshold_3 | float), 'icon': (icon_3 | int)}] %}
         {% endif %}
         {% if threshold_4 | default('') | trim != '' and icon_4 | default('') | trim != '' %}
-          {% set pairs = pairs + [{'thr': threshold_4 | float, 'icon': icon_4 | int}] %}
+          {% set pairs = pairs + [{'thr': (threshold_4 | float), 'icon': (icon_4 | int)}] %}
         {% endif %}
 
         {# sortuj pary po progach rosnąco #}
@@ -185,13 +185,13 @@ action:
         {% if num is not none and pairs | length > 0 %}
           {% set chosen_icon = none %}
           {% for p in pairs %}
-            {% if num <= p.thr %}
-              {% set chosen_icon = p.icon %}
+            {% if num <= p['thr'] %}
+              {% set chosen_icon = p['icon'] %}
               {% break %}
             {% endif %}
           {% endfor %}
           {% if chosen_icon is none %}
-            {% set chosen_icon = pairs[(pairs | length) - 1].icon %}
+            {% set chosen_icon = pairs[(pairs | length) - 1]['icon'] %}
           {% endif %}
         {% else %}
           {% set chosen_icon = icon_id | default('') %}
