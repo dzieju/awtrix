@@ -1,0 +1,230 @@
+blueprint:
+  name: Awtrix -
+  description: >
+    Publikuje wartość encji (lub atrybutu temperature dla weather) do AWtrix przez MQTT
+    z konfigurowalnymi ikonami zależnymi od progów (do 4 progów), liczbą powtórzeń,
+    czcionką, sufiksem i opcjami tekstu (wielkie litery / brak przewijania).
+    Pola ikon i progów domyślnie puste.
+  domain: automation
+  input:
+    sensor_entity:
+      name: Encja źródłowa
+      description: Wybierz encję (sensor, weather itp.) — lista encji będzie dostępna w UI.
+      selector:
+        entity: {}
+    awtrix_topic:
+      name: Temat MQTT
+      description: Temat MQTT dla Twojego urządzenia AWtrix (np. awtrix_664dc4/custom/sypialnia)
+      selector:
+        text:
+          multiline: false
+    suffix:
+      name: Sufiks (co dopisać po wartości)
+      description: Tekst dopisywany po wartości (np. "°C", "%", " km/h"). Pozostaw puste, aby nic nie dopisywać.
+      default: ""
+      selector:
+        text:
+          multiline: false
+
+    # fallback icon gdy brak numerycznej wartości lub brak progów
+    icon_id:
+      name: Ikona fallback (opcjonalna)
+      description: Ikona użyta gdy nie ma wartości liczbowej (np. timestamp/tekst/unavailable). Pozostaw puste, jeśli nie chcesz ustawiać.
+      default: ""
+      selector:
+        text:
+          multiline: false
+
+    # progi i odpowiadające im ikony (opcjonalne, domyślnie puste)
+    threshold_1:
+      name: Próg 1 (opcjonalny)
+      description: Liczba progowa 1 (najniższy próg). Pozostaw puste jeśli nie używasz.
+      default: ""
+      selector:
+        text:
+          multiline: false
+    icon_1:
+      name: Ikona dla progu 1 (opcjonalna)
+      description: ID ikony gdy wartość <= próg 1. Pozostaw puste jeśli nie używasz.
+      default: ""
+      selector:
+        text:
+          multiline: false
+
+    threshold_2:
+      name: Próg 2 (opcjonalny)
+      default: ""
+      selector:
+        text:
+          multiline: false
+    icon_2:
+      name: Ikona dla progu 2 (opcjonalna)
+      default: ""
+      selector:
+        text:
+          multiline: false
+
+    threshold_3:
+      name: Próg 3 (opcjonalny)
+      default: ""
+      selector:
+        text:
+          multiline: false
+    icon_3:
+      name: Ikona dla progu 3 (opcjonalna)
+      default: ""
+      selector:
+        text:
+          multiline: false
+
+    threshold_4:
+      name: Próg 4 (opcjonalny)
+      default: ""
+      selector:
+        text:
+          multiline: false
+    icon_4:
+      name: Ikona dla progu 4 (opcjonalna)
+      default: ""
+      selector:
+        text:
+          multiline: false
+
+    push_icon:
+      name: pushIcon
+      description: Wartość pushIcon (0 = nie nadpisuj, 2 = nadpisz)
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 2
+          mode: slider
+    repeat_count:
+      name: Liczba powtórzeń
+      description: Ile razy ma się wyświetlić komunikat
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 10
+    uppercase:
+      name: Wielkie litery
+      description: Czy tekst ma być pisany wielkimi literami
+      default: true
+      selector:
+        boolean: {}
+    no_scroll:
+      name: Bez przewijania
+      description: Czy tekst ma być statyczny (bez przewijania)
+      default: false
+      selector:
+        boolean: {}
+    font_id:
+      name: ID czcionki
+      description: Numer czcionki AWtrix (np. 0 = domyślna)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10
+
+variables:
+  sensor_entity: !input sensor_entity
+  awtrix_topic: !input awtrix_topic
+  suffix: !input suffix
+  icon_id: !input icon_id
+  threshold_1: !input threshold_1
+  icon_1: !input icon_1
+  threshold_2: !input threshold_2
+  icon_2: !input icon_2
+  threshold_3: !input threshold_3
+  icon_3: !input icon_3
+  threshold_4: !input threshold_4
+  icon_4: !input icon_4
+  push_icon: !input push_icon
+  repeat_count: !input repeat_count
+  uppercase: !input uppercase
+  no_scroll: !input no_scroll
+  font_id: !input font_id
+
+trigger:
+  - platform: state
+    entity_id: !input sensor_entity
+
+action:
+  - service: mqtt.publish
+    data:
+      topic: !input awtrix_topic
+      retain: false
+      payload: >
+        {# pobierz wartość (atrybut temperature dla weather lub stan encji) #}
+        {% set raw = state_attr(sensor_entity, 'temperature') if state_attr(sensor_entity, 'temperature') is not none else states(sensor_entity) %}
+        {% set num = raw | float(default=None) %}
+
+        {# zbuduj listę par (threshold, icon) tylko dla tych, które są wypełnione #}
+        {% set pairs = [] %}
+        {% if threshold_1 | default('') | trim != '' and icon_1 | default('') | trim != '' %}
+          {% set pairs = pairs + [{'thr': threshold_1 | float, 'icon': icon_1 | int}] %}
+        {% endif %}
+        {% if threshold_2 | default('') | trim != '' and icon_2 | default('') | trim != '' %}
+          {% set pairs = pairs + [{'thr': threshold_2 | float, 'icon': icon_2 | int}] %}
+        {% endif %}
+        {% if threshold_3 | default('') | trim != '' and icon_3 | default('') | trim != '' %}
+          {% set pairs = pairs + [{'thr': threshold_3 | float, 'icon': icon_3 | int}] %}
+        {% endif %}
+        {% if threshold_4 | default('') | trim != '' and icon_4 | default('') | trim != '' %}
+          {% set pairs = pairs + [{'thr': threshold_4 | float, 'icon': icon_4 | int}] %}
+        {% endif %}
+
+        {# sortuj pary po progach rosnąco #}
+        {% if pairs | length > 1 %}
+          {% set pairs = pairs | sort(attribute='thr') %}
+        {% endif %}
+
+        {# wybierz ikonę na podstawie porównań; jeśli num > wszystkie progi -> weź ikonę ostatniej pary #}
+        {% if num is not none and pairs | length > 0 %}
+          {% set chosen_icon = none %}
+          {% for p in pairs %}
+            {% if num <= p.thr %}
+              {% set chosen_icon = p.icon %}
+              {% break %}
+            {% endif %}
+          {% endfor %}
+          {% if chosen_icon is none %}
+            {% set chosen_icon = pairs[(pairs | length) - 1].icon %}
+          {% endif %}
+        {% else %}
+          {% set chosen_icon = icon_id | default('') %}
+        {% endif %}
+
+        {% if chosen_icon | string | trim == '' %}
+          {% set chosen_icon_val = none %}
+        {% else %}
+          {% set chosen_icon_val = (chosen_icon | int) %}
+        {% endif %}
+
+        {# zbuduj tekst - tylko dla liczb dopisujemy sufiks #}
+        {% set suffix_safe = suffix | default('') %}
+        {% if raw in ['unknown','unavailable','', none] %}
+          {% set text = 'N/A' %}
+        {% elif num is not none %}
+          {% if suffix_safe | trim != '' %}
+            {% set text = (num | round(1)) ~ suffix_safe %}
+          {% else %}
+            {% set text = (num | round(1)) %}
+          {% endif %}
+        {% else %}
+          {% set text = raw %}
+        {% endif %}
+
+        {{ {
+            'text': text,
+            'icon': chosen_icon_val,
+            'pushIcon': push_icon,
+            'repeat': repeat_count,
+            'noScroll': no_scroll,
+            'uppercase': uppercase,
+            'font': font_id
+           } | tojson }}
+
+mode: restart
